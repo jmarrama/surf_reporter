@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/smtp"
+	"net/http"
 	"fmt"
 	"flag"
 	"errors"
@@ -13,6 +14,9 @@ type authdata struct {
 	username, password, authhost, sendhost string
 }
 
+var authinfo authdata
+var emails []string
+
 var authFile = flag.String("auth", "config/auth", "Location of four line auth file specifying agent email, password, authserver, and smtp server")
 var emailsFile = flag.String("emails", "config/emails", "Location of file containing email addresses to send to")
 
@@ -21,27 +25,44 @@ func main () {
 	flag.Parse()
 
 	// read auth info from config file
-	authinfo, err := loadAuthFile()
+	loc_authinfo, err := loadAuthFile()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	authinfo = loc_authinfo
 
 	// read emails from config file
-	emails, eerr := loadEmailFile()
+	loc_emails, eerr := loadEmailFile()
 	if eerr != nil {
 		fmt.Println(eerr)
 		return
 	}
-
+	emails = loc_emails
 
 	fmt.Println("hello world!")
 	fmt.Println(authinfo.username)
 	fmt.Println(authinfo.password)
 
+	// open up server
+	http.HandleFunc("/", handler)
+	http.ListenAndServe(":8080", nil)
+
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	body := r.FormValue("body")
+	err := sendEmail(authinfo, emails, []byte(body))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func sendEmail(authinfo authdata, emails []string, body []byte) error {
 	auth := smtp.PlainAuth("", authinfo.username, authinfo.password, authinfo.authhost)
-	err = smtp.SendMail(authinfo.sendhost, auth, authinfo.username, emails, []byte("this is a sweet mail test"))
-	fmt.Println(err)
+	return smtp.SendMail(authinfo.sendhost, auth, authinfo.username, emails, body)
 }
 
 /*
@@ -58,7 +79,6 @@ func main () {
  */
 func loadAuthFile() (authdata, error) {
 	var authinfo authdata
-
 	rawfile, err := ioutil.ReadFile(*authFile)
 	if err != nil {
 		return authinfo, errors.New("Could not open auth file!")
