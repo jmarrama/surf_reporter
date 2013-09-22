@@ -5,6 +5,31 @@ var wind_dir;
 var wind_dir_deg;
 var wave_height;
 var surfline_rating;
+var surfline_rating_str;
+
+/*
+ * Calculates the 'score' of the surf at ob.
+ */
+function calculate_score()
+{
+	var score = 0;
+
+	// wind should count for a lot at ob
+	if (wind_dir[0] == 'E') {
+		score += 3; // go, for sure
+	} else if (wind_dir[1] == 'E') {
+		score += 2; // likely a go
+	}
+
+	// wave score, sort of
+	if (wave_height > 3) {
+		score += 1;
+	}
+
+	// surfline rating always helps
+	score += surfline_rating;
+	return score;
+}
 
 function analyze_data()
 {
@@ -12,6 +37,15 @@ function analyze_data()
 	console.log(wind_speed +" mph from " +wind_dir + " " + wind_dir_deg);
 	console.log("wave height\t"+wave_height+"\tsurfline rating\t" + surfline_rating);
 
+	if (calculate_score() > 0) {
+		// its a go! build up a string
+		var go_str = "Hey brah, it looks like the surf is worth checking at OB. The winds are currently " +
+			wind_speed +" mph from " +wind_dir + " " + wind_dir_deg + " and the surf is " + wave_height +
+			"ft. Surfline is calling it " + surfline_rating_str;
+
+		return {'send': 'yes', 'body': "body="+go_str};
+	}
+	return {'send': null};
 }
 
 function extract_surfline_data(height_str, rating_str)
@@ -26,6 +60,7 @@ function extract_surfline_data(height_str, rating_str)
 		console.err("Data extraction for surfline wave height failed!");
 	}
 
+	surfline_rating_str = rating_str;
 	if (rating_str.match(/epic/i)) {
 		surfline_rating = 3;
 	} else if (rating_str.match(/good/i)) {
@@ -71,10 +106,27 @@ page.open("http://www.ob-kc.com/images/wx2.html", function (status) {
 				return [document.querySelector('#observed-spot-conditions').innerText, document.querySelector('#observed-wave-range').innerText];
 			});
 			extract_surfline_data(report[1], report[0]);
-			analyze_data();
+
+			// finally, analyze the data and send the email!
+			var final_data = analyze_data();
+
+			// finally, send out the mail
+			if (final_data.send) {
+				page.open("http://localhost:8080", "post", final_data.body, function (status) {
+					if (status === 'fail') {
+						console.err("Failed sending email!");
+					} else {
+						console.log("Alerted the masses!");
+					}
+
+					page.close();
+					phantom.exit();
+				});
+			} else {
+				page.close();
+				phantom.exit();
+			}
 		}
-		page.close();
-		phantom.exit();
 	});
 });
 

@@ -3,8 +3,8 @@ package main
 import (
 	"net/smtp"
 	"net/http"
-	"fmt"
 	"flag"
+	"log"
 	"errors"
 	"io/ioutil"
 	"strings"
@@ -21,23 +21,21 @@ var authFile = flag.String("auth", "config/auth", "Location of four line auth fi
 var emailsFile = flag.String("emails", "config/emails", "Location of file containing email addresses to send to")
 
 func main () {
-
 	flag.Parse()
 
 	// read auth info from config file
 	var err error
 	authinfo, err = loadAuthFile()
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
 
 	// read emails from config file
 	emails, err = loadEmailFile()
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
+	log.Print("everything is loaded!")
 
 	// open up server
 	http.HandleFunc("/", handler)
@@ -46,6 +44,10 @@ func main () {
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	body := r.FormValue("body")
+
+	log.Print("body received!")
+	log.Print(body)
+
 	err := sendEmail(authinfo, emails, []byte(body))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -81,7 +83,6 @@ func loadAuthFile() (authdata, error) {
 	// a little unsafe, but this file is small. yolo
 	lines := strings.Split(strings.Trim(string(rawfile), "\r\n"), "\n")
 	if len(lines) != 4 {
-		fmt.Println(len(lines))
 		return authinfo, errors.New("Auth file did not contain 4 lines!")
 	}
 	authinfo.username = lines[0];
@@ -97,9 +98,7 @@ func loadAuthFile() (authdata, error) {
 func loadEmailFile() ([]string, error) {
 	rawfile, err := ioutil.ReadFile(*emailsFile)
 	if err != nil {
-		fmt.Println(err)
 		return nil, errors.New("Could not open email file!")
 	}
-
 	return strings.Split(strings.Trim(string(rawfile), "\r\n"), "\n"), nil
 }
