@@ -25,29 +25,23 @@ func main () {
 	flag.Parse()
 
 	// read auth info from config file
-	loc_authinfo, err := loadAuthFile()
+	var err error
+	authinfo, err = loadAuthFile()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	authinfo = loc_authinfo
 
 	// read emails from config file
-	loc_emails, eerr := loadEmailFile()
-	if eerr != nil {
-		fmt.Println(eerr)
+	emails, err = loadEmailFile()
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
-	emails = loc_emails
-
-	fmt.Println("hello world!")
-	fmt.Println(authinfo.username)
-	fmt.Println(authinfo.password)
 
 	// open up server
 	http.HandleFunc("/", handler)
 	http.ListenAndServe(":8080", nil)
-
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
