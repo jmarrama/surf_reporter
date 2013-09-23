@@ -56,7 +56,7 @@ function analyze_data()
 		var go_str = "Hey brah, Shredgnar Mc.Shred here. " +
 			"It looks like the surf is worth checking at OB. The winds are currently " +
 			wind_speed +" mph from " + wind_dir + " " + wind_dir_deg +
-			" and the swell is " + swell_height + " foot at " + swell_period +
+			" and the swell is " + swell_height + " feet at " + swell_period +
 			" seconds. Surfline is calling it " + surfline_rating_str;
 
 		return {'send': 'yes', 'body': "body="+go_str};
