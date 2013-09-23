@@ -39,13 +39,13 @@ func main () {
 
 	// open up server
 	http.HandleFunc("/", handler)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8123", nil)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	body := r.FormValue("body")
 
-	log.Print("body received!")
+	log.Print("body received! sending an email with body:")
 	log.Print(body)
 
 	err := sendEmail(authinfo, emails, []byte(body))
@@ -56,6 +56,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/*
+ * Send an email to the address 'emails' with body 'body'
+ */
 func sendEmail(authinfo authdata, emails []string, body []byte) error {
 	auth := smtp.PlainAuth("", authinfo.username, authinfo.password, authinfo.authhost)
 	return smtp.SendMail(authinfo.sendhost, auth, authinfo.username, emails, body)

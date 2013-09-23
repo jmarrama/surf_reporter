@@ -7,6 +7,8 @@ var wave_height;
 var surfline_rating;
 var surfline_rating_str;
 
+// TODO: add sf buoy
+// TODO: add wave period into calculations
 /*
  * Calculates the 'score' of the surf at ob.
  */
@@ -15,10 +17,12 @@ function calculate_score()
 	var score = 0;
 
 	// wind should count for a lot at ob
-	if (wind_dir[0] == 'E') {
+	if (wind_dir_deg > 30 && wind_dir_deg < 150) {
 		score += 3; // go, for sure
-	} else if (wind_dir[1] == 'E') {
+	} else if ((wind_dir_deg >= 0 || wind_dir_deg < 180) && wind_speed < 10) {
 		score += 2; // likely a go
+	} else if (wind_speed < 5) {
+		score += 1; // meh
 	}
 
 	// wave score, sort of
@@ -39,7 +43,7 @@ function analyze_data()
 
 	if (calculate_score() > 0) {
 		// its a go! build up a string
-		var go_str = "Hey brah, it looks like the surf is worth checking at OB. The winds are currently " +
+		var go_str = "Hey brah, Shredgnar Mc.Chill here. It looks like the surf is worth checking at OB. The winds are currently " +
 			wind_speed +" mph from " +wind_dir + " " + wind_dir_deg + " and the surf is " + wave_height +
 			"ft. Surfline is calling it " + surfline_rating_str;
 
@@ -78,9 +82,9 @@ function extract_obkc_data(data)
 	var obkc_regex = /F\s*\|\s*(.*)\s*\((\d*).*@\s*(.{1,5})\smph/;
 	var matches = data.match(obkc_regex);
 	if (matches) {
-		wind_speed = matches[3];
-		wind_dir = matches[1];
-		wind_dir_deg = matches[2];
+		wind_speed = parseInt(matches[3].trim());
+		wind_dir = matches[1].trim();
+		wind_dir_deg = parseInt(matches[2].trim());
 	} else {
 		console.err("Data extraction failed for ob-kc!");
 	}
@@ -107,12 +111,12 @@ page.open("http://www.ob-kc.com/images/wx2.html", function (status) {
 			});
 			extract_surfline_data(report[1], report[0]);
 
-			// finally, analyze the data and send the email!
+			// finally, analyze the data
 			var final_data = analyze_data();
 
 			// finally, send out the mail
 			if (final_data.send) {
-				page.open("http://localhost:8080", "post", final_data.body, function (status) {
+				page.open("http://localhost:8123", "post", final_data.body, function (status) {
 					if (status === 'fail') {
 						console.err("Failed sending email!");
 					} else {
