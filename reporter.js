@@ -1,11 +1,11 @@
-var wind_speed;
-var wind_dir;
-var wind_dir_deg;
-var wave_height;
-var surfline_rating;
-var surfline_rating_str;
-var swell_height;
-var swell_period;
+var wind_speed = null;
+var wind_dir = null;
+var wind_dir_deg = null;
+var wave_height = 0;
+var surfline_rating = 0;
+var surfline_rating_str = null;
+var swell_height = null;
+var swell_period = null;
 
 /*
  * Calculates the 'score' of the surf at ob.
@@ -35,7 +35,7 @@ function calculate_score()
 
 	// we don't want it to be completely flat
 	// also discount small windswell
-	if (swell_height < 1.5 && wave_height < 1.5) {
+	if (swell_height < 1.0) {
 		score = score/2;
 	} else if (swell_height < 2.5 && swell_period < 7.5) {
 		score -= 1;
@@ -48,7 +48,7 @@ function analyze_data()
 {
 	console.log("wind speed and dir:");
 	console.log(wind_speed +" mph from " +wind_dir + " " + wind_dir_deg);
-	console.log("wave height\t"+wave_height+"\tsurfline rating\t" + surfline_rating);
+	if (surfline_rating_str) { console.log("wave height\t"+wave_height+"\tsurfline rating\t" + surfline_rating); }
 	console.log("the swell is "+swell_height+" ft at "+swell_period+" seconds");
 
 	if (calculate_score() > 3) {
@@ -57,7 +57,10 @@ function analyze_data()
 			"It looks like the surf is worth checking at OB. The winds are currently " +
 			wind_speed +" mph from " + wind_dir + " " + wind_dir_deg +
 			" and the swell is " + swell_height + " feet at " + swell_period +
-			" seconds. Surfline is calling it " + surfline_rating_str;
+			" seconds.";
+		if (surfline_rating_str) {
+			go_str = go_str + " Surfline is calling it " + surfline_rating_str;
+		}
 
 		return {'send': 'yes', 'body': "body="+go_str};
 	}
@@ -128,10 +131,16 @@ obkc.open(obkc_url, function (status) {
 			console.error("Failed fetching surfline!");
 		} else {
 			var report = surfline.evaluate(function () {
-				return [document.querySelector('#observed-spot-conditions').innerText,
-					document.querySelector('#observed-wave-range').innerText];
+				if (document.querySelector('#observed-spot-conditions') &&
+					document.querySelector('#observed-wave-range')) {
+					return [document.querySelector('#observed-spot-conditions').innerText,
+						document.querySelector('#observed-wave-range').innerText];
+				}
+				return [null, null];
 			});
-			extract_surfline_data(report[1], report[0]);
+			if (report[1] && report[0]) {
+				extract_surfline_data(report[1], report[0]);
+			}
 		}
 		surfline.close();
 
