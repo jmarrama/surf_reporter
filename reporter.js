@@ -17,7 +17,7 @@ function calculate_score()
 	// wind should count for a lot at ob
 	if (wind_dir_deg > 30 && wind_dir_deg < 150) {
 		score += 3; // go, for sure
-	} else if ((wind_dir_deg >= 0 || wind_dir_deg < 180) && wind_speed < 10) {
+	} else if ((wind_dir_deg >= 0 || wind_dir_deg < 180) && wind_speed < 7.5) {
 		score += 2; // likely a go
 	} else if (wind_speed < 5) {
 		score += 1; // meh
@@ -47,7 +47,7 @@ function calculate_score()
 function analyze_data()
 {
 	console.log("wind speed and dir:");
-	console.log(wind_speed +" mph from " +wind_dir + " " + wind_dir_deg);
+	console.log(wind_speed +" kts from " +wind_dir + " " + wind_dir_deg);
 	if (surfline_rating_str) { console.log("wave height\t"+wave_height+"\tsurfline rating\t" + surfline_rating); }
 	console.log("the swell is "+swell_height+" ft at "+swell_period+" seconds");
 
@@ -55,7 +55,7 @@ function analyze_data()
 		// its a go! build up a string
 		var go_str = "Hey brah, Shredgnar Mc.Shred here. " +
 			"It looks like the surf is worth checking at OB. The winds are currently " +
-			wind_speed +" mph from " + wind_dir + " " + wind_dir_deg +
+			wind_speed +" kts from " + wind_dir + " " + wind_dir_deg +
 			" and the swell is " + swell_height + " feet at " + swell_period +
 			" seconds.";
 		if (surfline_rating_str) {
@@ -104,16 +104,19 @@ function extract_obkc_data(data)
 	}
 }
 
-var obkc = require('webpage').create();
+//var obkc = require('webpage').create();
+var sfwindbuoy = require('webpage').create();
 var surfline = require('webpage').create();
 var sfbuoy = require('webpage').create();
 var mailman = require('webpage').create();
 
-var obkc_url = "http://www.ob-kc.com/images/wx2.html";
+//var obkc_url = "http://www.ob-kc.com/images/wx2.html";
 var surfline_url = "http://www.surfline.com/surf-report/south-ocean-beach-central-california_4128/";
 var mailman_url = "http://localhost:8123";
 var sfbuoy_url = "http://www.ndbc.noaa.gov/station_page.php?station=46026";
+var sfbaywind_url = "http://www.ndbc.noaa.gov/station_page.php?station=ftpc1";
 
+/*
 obkc.open(obkc_url, function (status) {
 	if (status === 'fail') {
 		console.error("Failed fetching ob-kc!");
@@ -124,6 +127,23 @@ obkc.open(obkc_url, function (status) {
 		extract_obkc_data(data);
 	}
 	obkc.close();
+*/
+sfwindbuoy.open(sfbaywind_url, function (status) {
+	if (status === 'fail') {
+		console.error("Failed fetching wind data!");
+	} else {
+		var data = sfwindbuoy.evaluate(function () {
+			var ts = document.querySelector("caption.titleDataHeader").parentNode.getElementsByTagName('td');
+			// wind dir deg, wind dir, and wind speed
+			return [parseInt(ts[3].innerText.match(/\d{1,3}/g)[0], 10),
+				ts[3].innerText.match(/\w+/g)[0],
+				parseFloat(ts[6].innerText)];
+		});
+		wind_dir_deg = data[0];
+		wind_dir = data[1];
+		wind_speed = data[2];
+	}
+	sfwindbuoy.close();
 
 	// onto surfline!
 	surfline.open(surfline_url, function (status) {
