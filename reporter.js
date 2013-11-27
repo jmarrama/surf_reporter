@@ -171,7 +171,7 @@ sfwindbuoy.open(sfbaywind_url, function (status) {
 			} else {
 				var buoy_data = sfbuoy.evaluate(function () {
 					var tds = document.querySelector("caption.titleDataHeader").parentNode.getElementsByTagName('td');
-					return [parseFloat(tds[12].innerText), parseFloat(tds[15].innerText)];
+					return [parseFloat(tds[9].innerText), parseFloat(tds[12].innerText)];
 				});
 				swell_height = buoy_data[0];
 				swell_period = buoy_data[1];
